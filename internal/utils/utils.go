@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // FormatBytes converts bytes to human readable format
@@ -45,7 +46,9 @@ func GenerateFilename(originalFilename string, expiryTime time.Time) string {
 		originalExt = ".bin" // default extension if none
 	}
 
-	return fmt.Sprintf("%d%s", expiryTime.Unix(), originalExt)
+	uuid := uuid.New().String()
+
+	return fmt.Sprintf("%s_%d%s", uuid, expiryTime.Unix(), originalExt)
 }
 
 // GetFileExtension extracts file extension from filename

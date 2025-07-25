@@ -13,7 +13,7 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy app source code
 COPY . .
 
 # Build the application from correct path

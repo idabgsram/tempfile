@@ -34,45 +34,53 @@ func (s *CleanupService) Start() {
 	}
 }
 
-// cleanupExpiredFiles removes expired files from the upload directory
+// cleanupExpiredFiles removes expired files from the upload directory and pastes subdirectory.
 func (s *CleanupService) cleanupExpiredFiles() {
-	files, err := os.ReadDir(s.config.UploadDir)
-	if err != nil {
-		log.Printf("Error reading upload directory: %v", err)
-		return
-	}
-
 	now := time.Now()
 	cleanedCount := 0
 
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-
-		filename := file.Name()
-
-		// Check if file has expired using utility function
-		expired, err := utils.IsFileExpired(filename, now)
-		if err != nil {
-			// Skip files that are not in valid timestamp format
-			continue
-		}
-
-		if expired {
-			filePath := filepath.Join(s.config.UploadDir, filename)
-			if err := os.Remove(filePath); err != nil {
-				log.Printf("Error removing expired file %s: %v", filename, err)
-			} else {
-				cleanedCount++
-				if s.config.Debug {
-					log.Printf("Removed expired file: %s", filename)
-				}
-			}
-		}
-	}
+	cleanedCount += s.cleanupDir(s.config.UploadDir, now)
+	cleanedCount += s.cleanupDir(filepath.Join(s.config.UploadDir, "pastes"), now)
 
 	if cleanedCount > 0 {
 		log.Printf("🗑️  Cleaned up %d expired file(s)", cleanedCount)
 	}
+}
+
+// cleanupDir scans a single directory (non-recursive) and deletes expired files.
+func (s *CleanupService) cleanupDir(dir string, now time.Time) int {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("Error reading directory %s: %v", dir, err)
+		}
+		return 0
+	}
+
+	cleaned := 0
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		filename := file.Name()
+
+		expired, err := utils.IsFileExpired(filename, now)
+		if err != nil {
+			continue
+		}
+		if !expired {
+			continue
+		}
+
+		filePath := filepath.Join(dir, filename)
+		if err := os.Remove(filePath); err != nil {
+			log.Printf("Error removing expired file %s: %v", filePath, err)
+			continue
+		}
+		cleaned++
+		if s.config.Debug {
+			log.Printf("Removed expired file: %s", filePath)
+		}
+	}
+	return cleaned
 }

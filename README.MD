@@ -21,6 +21,7 @@ A **lightning-fast** ⚡ temporary file upload service built with Go and Fiber. 
 - 🛡️ **Production Ready** - Comprehensive configuration and middleware support
 - 📱 **Cross-Platform** - Works on Linux, macOS, and Windows
 - 🔄 **Real-time Cleanup** - Background service cleans expired files automatically
+- 📝 **Text Sharing** - Share plain text snippets via `/p/:id`, with raw/download/copy options
 - 🌐 **CORS Support** - Configurable CORS for API integration
 - 📊 **Structured Logging** - Built-in request logging and monitoring
 - ⚙️ **Environment Config** - Flexible configuration via environment variables
@@ -147,6 +148,54 @@ X-RateLimit-Limit-Bytes: 104857600
 X-RateLimit-Remaining-Bytes: 52428800
 X-RateLimit-Reset: 1718270400
 ```
+
+### Create Paste (Text Sharing)
+
+**POST** `/paste`
+
+Share a plain-text snippet. Pastes are stored under `UPLOAD_DIR/pastes/` and follow the same expiry as file uploads (`FILE_EXPIRY_HOURS`, default 1h) and the same size limit (`MAX_FILE_SIZE`, default 100MB). The Web UI includes a "Share Text" tab on the home page.
+
+```bash
+# JSON response
+curl -X POST -H "Accept: application/json" \
+     --data-urlencode "content=hello world" \
+     http://localhost:3000/paste
+```
+
+```json
+{
+  "message": "Paste created",
+  "id": "5cf0c2fa-c44b-4a48-8c9b-b6704c1c3ff4",
+  "url": "http://localhost:3000/p/5cf0c2fa-c44b-4a48-8c9b-b6704c1c3ff4",
+  "raw_url": "http://localhost:3000/p/5cf0c2fa-c44b-4a48-8c9b-b6704c1c3ff4/raw",
+  "size": 11,
+  "size_human": "11 B",
+  "expires_at": "2026-05-08T13:35:10Z",
+  "expires_in": "1 hour(s)"
+}
+```
+
+A web form submit (`Accept: text/html`) returns a `302` redirect to `/p/:id` instead.
+
+### View Paste (HTML)
+
+**GET** `/p/:id`
+
+Returns an HTML page with the content, line numbers, share link, and Copy / Raw / Download buttons.
+
+### View Paste (Raw)
+
+**GET** `/p/:id/raw`
+
+Returns the paste body as `text/plain; charset=utf-8` — ideal for `curl` / `wget`.
+
+```bash
+curl http://localhost:3000/p/5cf0c2fa-c44b-4a48-8c9b-b6704c1c3ff4/raw
+```
+
+**Error Responses (paste endpoints):**
+- `400` - Empty content, oversize content, or invalid paste id
+- `404` - Paste not found or expired
 
 ## 🎨 Web Interface
 

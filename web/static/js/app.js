@@ -69,10 +69,24 @@ class TempFilesUI {
             }
         });
         
-        // Copy button
+        // Copy button: supports data-text (literal) or data-content-id (copy element text)
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('copy-btn')) {
-                this.copyToClipboard(e.target.dataset.text);
+            const btn = e.target.closest('.copy-btn');
+            if (!btn) return;
+            let text = btn.dataset.text;
+            if (!text && btn.dataset.contentId) {
+                const el = document.getElementById(btn.dataset.contentId);
+                if (el) {
+                    const lines = el.querySelectorAll('.paste-line');
+                    if (lines.length > 0) {
+                        text = Array.prototype.map.call(lines, (n) => n.textContent).join('\n');
+                    } else {
+                        text = (el.querySelector('code') || el).innerText;
+                    }
+                }
+            }
+            if (text != null) {
+                this.copyToClipboard(text, btn);
             }
         });
     }
@@ -319,17 +333,51 @@ class TempFilesUI {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
-    copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            // Show temporary success message
-            const originalText = event.target.textContent;
-            event.target.textContent = '✅ Copied!';
+    copyToClipboard(text, btn) {
+        const target = btn || (typeof event !== 'undefined' ? event.target : null);
+        const flash = (ok) => {
+            if (!target) return;
+            const original = target.textContent;
+            target.textContent = ok ? '✅ Copied!' : '❌ Copy failed';
+            target.disabled = true;
             setTimeout(() => {
-                event.target.textContent = originalText;
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-        });
+                target.textContent = original;
+                target.disabled = false;
+            }, 1600);
+        };
+
+        const useFallback = () => {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.top = '0';
+                ta.style.left = '0';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                ta.setSelectionRange(0, ta.value.length);
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                flash(ok);
+            } catch (err) {
+                console.error('Copy fallback failed:', err);
+                flash(false);
+            }
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text)
+                .then(() => flash(true))
+                .catch((err) => {
+                    console.warn('Clipboard API failed, using fallback:', err);
+                    useFallback();
+                });
+        } else {
+            useFallback();
+        }
     }
 }
 

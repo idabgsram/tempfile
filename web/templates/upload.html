@@ -40,8 +40,15 @@
             <!-- Alert Container -->
             <div class="alert"></div>
             
-            <!-- Upload Section -->
+            <!-- Upload / Paste Section -->
             <div class="card">
+                <div class="tabs">
+                    <button type="button" class="tab-btn active" data-tab-target="upload">Upload File</button>
+                    <button type="button" class="tab-btn" data-tab-target="paste">Share Text</button>
+                </div>
+
+                <!-- Upload panel -->
+                <div class="tab-panel active" data-tab-panel="upload">
                 <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">
                     <!-- Upload Area -->
                     <div class="upload-area" id="uploadArea" data-max-file-size="{{.MaxFileSize}}" data-max-file-size-human="{{.MaxFileSizeHuman}}">
@@ -72,8 +79,19 @@
                         </button>
                     </div>
                 </form>
+                </div><!-- /upload panel -->
+
+                <!-- Paste panel -->
+                <div class="tab-panel" data-tab-panel="paste">
+                    <form class="paste-form" action="/paste" method="POST">
+                        <textarea name="content" placeholder="Paste your text here..." required maxlength="{{.MaxFileSize}}"></textarea>
+                        <div class="submit-row">
+                            <button type="submit" class="btn">📝 Create Paste</button>
+                        </div>
+                    </form>
+                </div><!-- /paste panel -->
             </div>
-            
+
             <!-- Features -->
             <div class="card">
                 <h3 style="margin-bottom: 1rem; text-align: center;">✨ Features</h3>
@@ -112,6 +130,7 @@
     
     <!-- JavaScript -->
     <script src="/static/js/app.js"></script>
+    <script src="/static/js/paste.js" defer></script>
 </body>
 </html>
 {{end}}

@@ -14,6 +14,18 @@ type UploadResponse struct {
 	DownloadURL  string    `json:"download_url"`
 }
 
+// PasteResponse is returned by POST /paste in JSON mode.
+type PasteResponse struct {
+	Message   string    `json:"message"`
+	ID        string    `json:"id"`
+	URL       string    `json:"url"`
+	RawURL    string    `json:"raw_url"`
+	Size      int64     `json:"size"`
+	SizeHuman string    `json:"size_human"`
+	ExpiresAt time.Time `json:"expires_at"`
+	ExpiresIn string    `json:"expires_in"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error string `json:"error"`
@@ -44,4 +56,10 @@ type WebPageData struct {
 	ErrorTitle       string
 	ErrorMessage     string
 	ErrorDetail      string
+
+	// Paste view fields
+	PasteID      string
+	PasteContent string
+	PasteRawURL  string
+	PasteURL     string
 }

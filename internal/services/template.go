@@ -173,6 +173,22 @@ func (s *TemplateService) RenderErrorPage(c *fiber.Ctx, title, message, detail s
 	return s.Render(c, "error.html", data)
 }
 
+// RenderPastePage renders a paste view page.
+func (s *TemplateService) RenderPastePage(c *fiber.Ctx, baseURL, pasteID, content, rawURL, expiresAt, expiresIn string) error {
+	data := models.WebPageData{
+		Title:        "Paste",
+		Theme:        s.config.DefaultTheme,
+		BaseURL:      baseURL,
+		PasteID:      pasteID,
+		PasteContent: content,
+		PasteRawURL:  rawURL,
+		PasteURL:     baseURL + "/p/" + pasteID,
+		ExpiresAt:    expiresAt,
+		ExpiresIn:    expiresIn,
+	}
+	return s.Render(c, "paste.html", data)
+}
+
 // Helper method to format bytes (avoiding import cycle)
 func (s *TemplateService) formatBytes(bytes int64) string {
 	const unit = 1024

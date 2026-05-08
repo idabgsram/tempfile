@@ -43,6 +43,7 @@ func main() {
 
 	// Initialize services
 	uploadService := services.NewUploadService(cfg)
+	pasteService := services.NewPasteService(cfg)
 	cleanupService := services.NewCleanupService(cfg)
 
 	var templateService *services.TemplateService
@@ -67,8 +68,10 @@ func main() {
 	fileHandler := handlers.NewFileHandler(cfg)
 
 	var webHandler *handlers.WebHandler
+	var pasteHandler *handlers.PasteHandler
 	if cfg.EnableWebUI {
 		webHandler = handlers.NewWebHandler(cfg, uploadService, templateService)
+		pasteHandler = handlers.NewPasteHandler(cfg, pasteService, templateService)
 	}
 
 	// Initialize rate limiter if enabled
@@ -128,7 +131,7 @@ func main() {
 	setupMiddleware(app, cfg, staticService, rateLimiter)
 
 	// Setup routes
-	setupRoutes(app, cfg, apiHandler, webHandler, fileHandler, rateLimiter)
+	setupRoutes(app, cfg, apiHandler, webHandler, fileHandler, pasteHandler, rateLimiter)
 
 	// Start cleanup routine
 	go cleanupService.Start()
@@ -207,7 +210,7 @@ func convertCustomLimits(configLimits map[string]config.RateLimitEndpointConfig)
 }
 
 // setupRoutes configures application routes
-func setupRoutes(app *fiber.App, cfg *config.Config, apiHandler *handlers.APIHandler, webHandler *handlers.WebHandler, fileHandler *handlers.FileHandler, rateLimiter ratelimit.RateLimiter) {
+func setupRoutes(app *fiber.App, cfg *config.Config, apiHandler *handlers.APIHandler, webHandler *handlers.WebHandler, fileHandler *handlers.FileHandler, pasteHandler *handlers.PasteHandler, rateLimiter ratelimit.RateLimiter) {
 	// Health check endpoint (most specific first)
 	app.Get("/health", apiHandler.HealthCheck)
 
@@ -232,6 +235,18 @@ func setupRoutes(app *fiber.App, cfg *config.Config, apiHandler *handlers.APIHan
 		} else {
 			app.Post("/", apiHandler.UploadFile)
 		}
+	}
+
+	// Paste routes (must be before wildcard download route)
+	if pasteHandler != nil {
+		if cfg.EnableRateLimit && rateLimiter != nil {
+			postProcessMiddleware := middleware.NewRateLimiterPostProcess(rateLimiter)
+			app.Post("/paste", pasteHandler.CreatePaste, postProcessMiddleware)
+		} else {
+			app.Post("/paste", pasteHandler.CreatePaste)
+		}
+		app.Get("/p/:id", pasteHandler.ViewPaste)
+		app.Get("/p/:id/raw", pasteHandler.ViewPasteRaw)
 	}
 
 	// File download route (wildcard route LAST)
